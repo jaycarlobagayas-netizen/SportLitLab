@@ -1,13 +1,587 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PRISMA-PE Workbench</title>
-    <meta name="description" content="PRISMA 2020 systematic review workbench for Physical Education & Sports Science" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SportsLitLab — PRISMA Workbench for PE &amp; Sports Science</title>
+<style>
+  :root{
+    --black:#0c0b0d; --panel:#15121a; --panel-2:#1d1822; --raise:#241d29;
+    --maroon:#7b1113; --maroon-bright:#a51d20; --maroon-soft:#3a1417;
+    --orange:#e8731c; --orange-bright:#ff8c3a; --orange-deep:#c2540f;
+    --ink:#f4ece6; --muted:#b4a59a; --faint:#7d7068; --line:rgba(255,255,255,.09);
+    --good:#5bbd7a; --bad:#e5534b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--black); color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  code,.mono{font-family:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace}
+  #bg{position:fixed; inset:0; z-index:-2; display:block}
+  #bg-glow{position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(900px 500px at var(--mx,20%) -10%, rgba(123,17,19,.45), transparent 60%),
+      radial-gradient(700px 500px at 110% 10%, rgba(232,115,28,.18), transparent 55%);
+  }
+  .wrap{max-width:1240px; margin:0 auto; padding:26px 22px 60px}
+  a{color:var(--orange-bright); text-decoration:none}
+
+  /* ---- header ---- */
+  header.top{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    padding-bottom:18px; border-bottom:1px solid var(--line)}
+  .brand{display:flex; align-items:center; gap:14px}
+  .logo{width:50px; height:50px; border-radius:14px; display:grid; place-items:center; flex:0 0 auto;
+    background:linear-gradient(150deg,var(--maroon),var(--maroon-soft));
+    border:1px solid rgba(232,115,28,.35); box-shadow:0 8px 26px rgba(123,17,19,.5), inset 0 1px 0 rgba(255,255,255,.08)}
+  .logo svg{width:30px; height:30px; color:var(--orange-bright)}
+  .brand h1{margin:0; font-size:23px; letter-spacing:.3px; font-weight:800}
+  .brand h1 b{color:var(--orange-bright); font-weight:800}
+  .brand .sub{margin:2px 0 0; font-size:12.5px; color:var(--muted)}
+  .by{font-size:11px; color:var(--faint); margin-top:3px; letter-spacing:.12em; text-transform:uppercase}
+  .by b{color:var(--orange)}
+  .eyebrow{display:inline-flex; align-items:center; gap:7px; font-size:11px; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--orange); font-weight:700}
+  .eyebrow .tag{background:var(--maroon); color:#fff; padding:2px 7px; border-radius:5px; letter-spacing:.1em}
+
+  .btn{cursor:pointer; border:1px solid var(--line); background:var(--panel-2); color:var(--ink);
+    padding:9px 14px; border-radius:10px; font-size:13.5px; font-weight:600; display:inline-flex; align-items:center; gap:8px;
+    transition:transform .12s ease, border-color .15s, background .15s, box-shadow .15s}
+  .btn svg{width:16px; height:16px}
+  .btn:hover{border-color:rgba(232,115,28,.5); transform:translateY(-1px)}
+  .btn:disabled{opacity:.4; cursor:not-allowed; transform:none}
+  .btn.primary{background:linear-gradient(135deg,var(--orange),var(--orange-deep)); color:#1a0f06; border-color:transparent;
+    box-shadow:0 6px 20px rgba(232,115,28,.35)}
+  .btn.primary:hover{box-shadow:0 8px 26px rgba(232,115,28,.5)}
+  .btn.maroon{background:linear-gradient(135deg,var(--maroon-bright),var(--maroon)); color:#fff; border-color:transparent}
+  .btn.ghost{background:transparent}
+  .btn.danger{color:#ffb4ad; border-color:rgba(229,83,75,.35)}
+
+  /* ---- panels ---- */
+  .panel{background:linear-gradient(180deg,rgba(29,24,34,.9),rgba(18,15,22,.92)); border:1px solid var(--line);
+    border-radius:16px; padding:18px; box-shadow:0 12px 40px rgba(0,0,0,.35); backdrop-filter:blur(3px)}
+  .panel h3{margin:0 0 12px; font-size:13.5px; font-weight:700; display:flex; align-items:center; gap:8px; color:var(--ink)}
+  .panel h3 svg{width:17px; height:17px; color:var(--orange)}
+  .lead{font-size:13px; color:var(--muted); margin:0 0 12px}
+
+  .mt{margin-top:22px}
+  .grid-dash{display:grid; grid-template-columns:2fr 1fr; gap:16px}
+  @media(max-width:880px){ .grid-dash{grid-template-columns:1fr} }
+
+  /* ---- input / dropzone ---- */
+  #dropzone{border:1.5px dashed rgba(232,115,28,.4); border-radius:14px; padding:18px; text-align:center;
+    background:rgba(123,17,19,.08); transition:.18s; cursor:pointer; margin-bottom:12px}
+  #dropzone:hover{border-color:var(--orange); background:rgba(232,115,28,.1)}
+  #dropzone.drag{border-color:var(--orange-bright); background:rgba(232,115,28,.18); transform:scale(1.01)}
+  #dropzone .di{width:40px;height:40px;margin:0 auto 6px;color:var(--orange-bright)}
+  #dropzone b{color:var(--ink)} #dropzone span{color:var(--muted); font-size:12.5px}
+  textarea{width:100%; min-height:120px; resize:vertical; border-radius:12px; padding:13px;
+    background:#0e0c11; color:var(--ink); border:1px solid var(--line); font-size:13px; line-height:1.55;
+    font-family:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace; outline:none}
+  textarea:focus{border-color:var(--orange); box-shadow:0 0 0 3px rgba(232,115,28,.15)}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px}
+  .spacer{margin-left:auto}
+  #notice{margin-top:12px; padding:10px 13px; border-radius:10px; font-size:13px; display:none}
+  #notice.ok{display:block; background:rgba(91,189,122,.12); color:#bfe9cd; border:1px solid rgba(91,189,122,.3)}
+  #notice.warn{display:block; background:rgba(232,115,28,.12); color:#ffd2a8; border:1px solid rgba(232,115,28,.3)}
+
+  /* ---- flow ---- */
+  .flow{display:flex; gap:10px; align-items:stretch; flex-wrap:wrap}
+  .fbox{flex:1 1 120px; border-radius:12px; padding:12px; text-align:center; border:1px solid var(--line);
+    background:var(--panel); position:relative; transition:transform .15s, box-shadow .15s}
+  .fbox:hover{transform:translateY(-2px); box-shadow:0 10px 24px rgba(0,0,0,.4)}
+  .fbox .n{font-size:27px; font-weight:800; line-height:1; font-family:"SFMono-Regular",ui-monospace,monospace}
+  .fbox .l{font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; margin-top:5px; color:var(--muted)}
+  .fbox .ic{width:18px;height:18px; position:absolute; top:10px; right:10px; opacity:.55}
+  .arrow{align-self:center; color:var(--faint); font-weight:700; padding:0 2px}
+  .excl{display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:10px; font-size:12px; color:var(--muted)}
+
+  /* ---- theme bars ---- */
+  .tbar{display:flex; align-items:center; gap:9px; margin:9px 0}
+  .tbar .ti{width:16px;height:16px;flex:0 0 auto}
+  .tbar .tn{width:118px; flex:0 0 auto; font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .tbar .track{flex:1; height:8px; border-radius:6px; background:rgba(255,255,255,.07); overflow:hidden}
+  .tbar .fill{height:100%; border-radius:6px; transition:width .4s ease}
+  .tbar .tc{width:20px; text-align:right; font-size:12px; color:var(--muted); font-family:monospace}
+
+  /* ---- controls ---- */
+  .controls{display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin:20px 0 10px}
+  .ctl{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); font-weight:600}
+  select{background:#0e0c11; color:var(--ink); border:1px solid var(--line); border-radius:9px;
+    padding:7px 9px; font-size:13px; outline:none; cursor:pointer}
+  select:focus{border-color:var(--orange)}
+  .count{margin-left:auto; font-family:monospace; font-size:12px; color:var(--faint)}
+
+  /* ---- table ---- */
+  .tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:16px; background:rgba(14,12,17,.7)}
+  table{width:100%; border-collapse:collapse; font-size:12.5px}
+  thead th{position:sticky; top:0; background:var(--panel-2); text-align:left; padding:11px 12px;
+    font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); border-bottom:1px solid var(--line)}
+  tbody td{padding:12px; vertical-align:top; border-bottom:1px solid rgba(255,255,255,.05)}
+  tbody tr:hover{background:rgba(232,115,28,.05)}
+  .ay{font-family:monospace; font-size:11.5px; color:var(--ink)} .ay .yr{color:var(--faint)}
+  .ttl{font-weight:600; line-height:1.35; max-width:230px}
+  .doi{font-family:monospace; font-size:10.5px; color:var(--faint); margin-top:3px}
+  .small{font-size:11px; color:var(--muted)}
+  .pillsel{appearance:none; border-radius:20px; padding:4px 10px; font-size:11px; font-weight:700;
+    border:1px solid currentColor; background:transparent; cursor:pointer}
+  .reason{border:1px solid rgba(229,83,75,.4); background:rgba(229,83,75,.08); color:#ffb4ad; border-radius:8px; padding:5px 8px; font-size:11px}
+  .xbtn{background:none; border:none; color:var(--faint); cursor:pointer; font-size:15px; transition:color .15s}
+  .xbtn:hover{color:var(--bad)}
+
+  /* ---- synthesis ---- */
+  .syn{border-left:3px solid var(--orange); padding:4px 0 4px 16px; margin:16px 0}
+  .syn p{margin:7px 0 0; font-size:13.5px; line-height:1.6; color:#e6dcd3}
+  .chip{display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700;
+    border:1px solid currentColor}
+  .chip .dot{width:7px;height:7px;border-radius:50%; background:currentColor}
+  .synfoot{margin-top:16px; padding:11px 14px; border-radius:10px; background:rgba(123,17,19,.14);
+    border:1px solid rgba(123,17,19,.3); font-family:monospace; font-size:11.5px; color:var(--muted)}
+
+  .empty{text-align:center; padding:48px 20px}
+  .empty .ec{width:54px;height:54px;margin:0 auto 12px; color:var(--orange); opacity:.8}
+  .empty h3{margin:0 0 6px; font-size:16px} .empty p{margin:0 auto; max-width:440px; color:var(--muted); font-size:13.5px}
+
+  footer{margin-top:42px; border-top:1px solid var(--line); padding-top:18px; text-align:center;
+    font-family:monospace; font-size:11.5px; color:var(--faint)}
+  footer b{color:var(--orange)}
+  .hide{display:none !important}
+  @media (prefers-reduced-motion: reduce){ #bg{opacity:.5} }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="bg-glow"></div>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="logo" id="logo"></div>
+      <div>
+        <div class="eyebrow"><span class="tag">PRISMA</span> 2020 · Workbench</div>
+        <h1>Sports<b>Lit</b>Lab</h1>
+        <div class="sub">Literature organisation &amp; synthesis for Physical Education &amp; Sports Science</div>
+        <div class="by">Developed by <b>JCB</b></div>
+      </div>
+    </div>
+    <button class="btn maroon" id="exportBtn" disabled><span data-ic="export"></span> Export evidence table</button>
+  </header>
+
+  <!-- INPUT -->
+  <section class="panel mt">
+    <h3><span data-ic="upload"></span> Add records</h3>
+    <div id="dropzone">
+      <div class="di" data-ic="drop"></div>
+      <div><b>Drag &amp; drop article files here</b> &nbsp;·&nbsp; <span>or click to browse</span></div>
+      <span>.txt, .md, .ris, .bib, .csv, .json — PDFs supported when online</span>
+      <input type="file" id="fileInput" multiple class="hide"
+        accept=".txt,.md,.ris,.bib,.csv,.json,.pdf,text/plain,application/pdf" />
+    </div>
+    <p class="lead">…or paste an abstract, full citation, or DOI below. Separate multiple records with a blank line — each block becomes one record and enters <b style="color:var(--ink)">Identification</b>.</p>
+    <textarea id="input" placeholder="e.g.  Reyes, M. A., &amp; Tan, L. (2021). Effects of high-intensity interval training on VO2max in collegiate athletes. Journal of Sports Science. doi:10.1080/…"></textarea>
+    <div class="row">
+      <button class="btn primary" id="addBtn"><span data-ic="spark"></span> Extract &amp; add to review</button>
+      <button class="btn ghost" id="sampleBtn"><span data-ic="flask"></span> Load 5 sample PE studies</button>
+      <button class="btn danger spacer hide" id="clearBtn">Clear all</button>
+    </div>
+    <div id="notice"></div>
+  </section>
+
+  <div id="app"></div>
+</div>
+
+<script>
+/* ============================ KNOWLEDGE BASE ============================ */
+const THEMES = {
+  "Performance":      {color:"#f0883e", keywords:["performance","vo2","vo2max","aerobic","anaerobic","strength","power","endurance","speed","sprint","agility","fitness","explosive","jump","throw","athletic","competition","output","capacity"]},
+  "Pedagogy":         {color:"#e3b341", keywords:["teaching","teacher","instruction","curriculum","pedagogy","physical education class","lesson","learning environment","tgfu","sport education","game-based","didactic","classroom","instructional"]},
+  "Sports Psychology":{color:"#db6ca0", keywords:["motivation","anxiety","self-efficacy","confidence","mental","psychological","mindset","flow","burnout","stress","self-esteem","enjoyment","engagement","wellbeing","well-being","attitude","perception"]},
+  "Training Methods": {color:"#e5534b", keywords:["training","hiit","resistance training","periodization","plyometric","interval","conditioning","load","volume","intensity","program","regimen","circuit","warm-up","recovery","protocol"]},
+  "Motor Learning":   {color:"#56c5b6", keywords:["motor skill","motor learning","coordination","skill acquisition","feedback","practice schedule","retention","transfer","fundamental movement","balance","dexterity","kinesthetic","proficiency","movement competence"]},
+  "Assessment":       {color:"#9b7ce0", keywords:["assessment","evaluation","testing","measurement","rubric","validity","reliability","fitness test","psychometric","scale","instrument","norm","benchmark","grading","diagnostic"]},
+  "Unclassified":     {color:"#8a8a8a", keywords:[]}
+};
+const DESIGNS = [
+  ["Systematic Review / Meta-analysis",["meta-analysis","systematic review","prisma"]],
+  ["Randomized Controlled Trial",["randomi","rct","controlled trial","randomly assigned"]],
+  ["Quasi-experimental",["quasi-experiment","non-randomi","pre-post","pretest-posttest","pre-test"]],
+  ["Experimental",["experiment","intervention group","control group","treatment group"]],
+  ["Longitudinal / Cohort",["longitudinal","cohort","follow-up","prospective"]],
+  ["Cross-sectional",["cross-sectional","survey","correlational","questionnaire"]],
+  ["Qualitative",["qualitative","interview","focus group","phenomenolog","grounded theory","thematic analysis"]],
+  ["Mixed-methods",["mixed-method","mixed method","explanatory sequential"]],
+  ["Case Study",["case study","single-subject","case report"]]
+];
+const STAGE_COLOR = {Identification:"#9a8f86", Screening:"#e3b341", Eligibility:"#56c5b6", Included:"#5bbd7a", Excluded:"#e5534b"};
+const STAGES = ["Identification","Screening","Eligibility","Included","Excluded"];
+const EXCLUSION_REASONS = ["","Not PE/Sports context","Wrong study design","No relevant outcomes","Wrong population","Not peer-reviewed","Duplicate","Full text unavailable","Language","Other"];
+
+const SAMPLE = `Reyes, M. A., & Tan, L. (2021). Effects of high-intensity interval training on VO2max and sprint speed in collegiate football players. Journal of Sports Science, 39(4), 211-219. doi:10.1080/02640414.2021.1885456. This randomized controlled trial examined the effects of an 8-week HIIT program on aerobic capacity in 48 collegiate athletes (n = 48). Results showed a significant improvement in VO2max (p < 0.01) and 30-m sprint performance compared to the control group.
+
+Dela Cruz, J. (2020). Teachers' use of the Sport Education model and its impact on student engagement in secondary physical education. Physical Education Review, 12(2), 88-101. doi:10.1177/1356336X20911234. A mixed-methods study investigated the influence of the Sport Education curriculum on motivation and enjoyment among 120 secondary students (n = 120). Findings revealed increased engagement and improved attitudes toward physical education lessons.
+
+Okafor, B., Smith, R., & Lim, K. (2019). The relationship between self-efficacy and competitive anxiety in youth swimmers. International Journal of Sport Psychology, 50(3), 145-160. doi:10.7352/IJSP.2019.50.145. This cross-sectional survey explored the relationship between self-efficacy and anxiety in 95 adolescent athletes. Higher self-efficacy was significantly associated with lower competitive anxiety (p = 0.003).
+
+Santos, P. et al. (2022). Augmented feedback frequency and motor skill retention in novice basketball free-throw shooting. Motor Control Quarterly, 8(1), 33-49. doi:10.1123/mcq.2022.0007. A quasi-experimental pretest-posttest design assessed the effect of feedback schedule on skill acquisition in 60 novice players (n = 60). Reduced feedback frequency produced superior retention and transfer.
+
+Garcia, T., & Mendoza, F. (2018). Validity and reliability of a field-based agility test for adolescent volleyball players. Measurement in Physical Education, 22(4), 200-212. doi:10.1080/1091367X.2018.1499077. This study evaluated the psychometric properties of a new agility assessment using 110 participants. The test demonstrated acceptable validity and test-retest reliability.`;
+
+/* ============================ ICON LIBRARY (custom) ============================ */
+const I = (p)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const ICONS = {
+  flask:  I(`<path d="M9 3h6M10 3v6l-5 8.5A2 2 0 0 0 6.8 21h10.4a2 2 0 0 0 1.7-3L14 9V3"/><path d="M7.5 15h9"/><circle cx="11" cy="17" r=".6"/><circle cx="14" cy="18.5" r=".6"/>`),
+  spark:  I(`<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/>`),
+  upload: I(`<path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/><path d="M12 15V4M8 8l4-4 4 4"/>`),
+  drop:   I(`<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M12 17v-5M9.5 14.5 12 12l2.5 2.5"/>`),
+  export: I(`<path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/><path d="M12 4v11M8 11l4 4 4-4"/>`),
+  flow:   I(`<circle cx="5" cy="6" r="2.3"/><circle cx="19" cy="6" r="2.3"/><circle cx="12" cy="18" r="2.3"/><path d="M7 7.2 10.5 16M17 7.2 13.5 16M7 6h10"/>`),
+  chart:  I(`<path d="M4 20V4"/><path d="M4 20h16"/><rect x="7" y="12" width="3" height="5" rx=".5"/><rect x="12" y="8" width="3" height="9" rx=".5"/><rect x="17" y="14" width="3" height="3" rx=".5"/>`),
+  synth:  I(`<path d="M7 4h6l4 4v3"/><path d="M7 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><circle cx="17.5" cy="16.5" r="3.5"/><path d="m20 19 1.5 1.5"/>`),
+  trash:  I(`<path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/>`),
+  empty:  I(`<circle cx="12" cy="12" r="9"/><path d="m8 8 8 8M16 8l-8 8"/>`),
+  // theme icons
+  "Performance":      I(`<circle cx="12" cy="13" r="7"/><path d="M12 13l3-3M10 2h4M12 2v3"/>`),
+  "Pedagogy":         I(`<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M7 20h10M12 16v4M7 9l2 2 3-4 2 3"/>`),
+  "Sports Psychology":I(`<path d="M15.5 19v-2.2a5 5 0 1 0-7-4.6c0 1.7.6 2.6 1.5 3.6.7.8 1 1.4 1 2.2V19"/><path d="M9 19h5"/><path d="M11.5 9.5 12.7 11l-1.4.6 1.2 1.5"/>`),
+  "Training Methods": I(`<path d="M5 9v6M8 7v10M16 7v10M19 9v6M8 12h8"/>`),
+  "Motor Learning":   I(`<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".8"/>`),
+  "Assessment":       I(`<rect x="6" y="3.5" width="12" height="17" rx="1.5"/><path d="M9 3.5h6v3H9zM8.5 11l2 2 4-4.5M8.5 16h7"/>`),
+  "Unclassified":     I(`<circle cx="12" cy="12" r="8.5"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.3c-.8.4-1.1 1-1.1 1.7M12 17h.01"/>`)
+};
+const themeIcon = (t)=> ICONS[t] || ICONS["Unclassified"];
+
+/* ============================ EXTRACTION ENGINE ============================ */
+const norm = s => (s||"").toLowerCase();
+const cryptoId = () => "a"+Math.random().toString(36).slice(2,9);
+function extractDOI(t){const m=t.match(/10\.\d{4,9}\/[-._;()/:A-Za-z0-9]+/);return m?m[0].replace(/[.,;]$/,""):"";}
+function extractYear(t){const ms=t.match(/\b(19|20)\d{2}\b/g);if(!ms)return"";const now=new Date().getFullYear();
+  const v=ms.map(Number).filter(y=>y>=1950&&y<=now);return v.length?String(v[0]):"";}
+function extractAuthors(t,year){
+  if(year){const before=t.split(new RegExp("\\(?"+year))[0].trim();
+    if(before&&before.length<160&&/[A-Z][a-z]+,/.test(before))return before.replace(/\.$/,"").trim();}
+  const e=t.match(/([A-Z][A-Za-z'’-]+)\s+et\s+al\.?/);if(e)return e[1]+" et al.";
+  const n=t.match(/^([A-Z][A-Za-z'’-]+,\s*[A-Z]\.(?:\s*[A-Z]\.)?(?:,?\s*(?:&|and)\s*[A-Z][A-Za-z'’-]+,\s*[A-Z]\.)*)/);
+  if(n)return n[1];return "Unknown";}
+function extractTitle(t,year,authors){
+  if(year){const after=t.split(new RegExp(year+"\\)\\.?\\s*"))[1];
+    if(after){const s=after.split(/\.\s+(?=[A-Z])/)[0];if(s&&s.length>12&&s.length<240)return s.trim();}}
+  const lines=t.split(/\n|\.\s+/).map(l=>l.trim()).filter(Boolean);
+  for(const l of lines){if(authors!=="Unknown"&&l.startsWith(authors.slice(0,6)))continue;
+    if(l.length>15&&l.length<200&&!/abstract|background|introduction/i.test(l))return l;}
+  return lines[0]?lines[0].slice(0,180):"Untitled record";}
+function extractDesign(t){const low=norm(t);for(const[n,k]of DESIGNS)if(k.some(x=>low.includes(x)))return n;return"Not specified";}
+function extractSample(t){const out=[];
+  const ns=t.match(/\b[nN]\s*=\s*\d+/g); if(ns)out.push(...ns.map(x=>x.replace(/\s+/g,"")));
+  const pop=t.match(/\b\d+\s+(?:participants|students|athletes|children|adolescents|players|pupils|adults|coaches|subjects)\b/gi); if(pop)out.push(...pop);
+  const lvl=t.match(/\b(?:elite|amateur|recreational|collegiate|university|secondary|primary|middle[- ]school|high[- ]school)\b[^.,;]{0,20}/gi);
+  if(lvl)out.push(...lvl.slice(0,2).map(g=>g.trim()));
+  return [...new Set(out)].join("; ")||"Not reported";}
+function extractVariables(t){
+  const P=[/effects?\s+of\s+([^.,;]{3,60}?)\s+on\s+([^.,;]{3,60})/i,/impact\s+of\s+([^.,;]{3,60}?)\s+on\s+([^.,;]{3,60})/i,
+    /influence\s+of\s+([^.,;]{3,60}?)\s+on\s+([^.,;]{3,60})/i,/relationship\s+between\s+([^.,;]{3,60}?)\s+and\s+([^.,;]{3,60})/i,
+    /association\s+between\s+([^.,;]{3,60}?)\s+and\s+([^.,;]{3,60})/i];
+  for(const p of P){const m=t.match(p);if(m)return "IV: "+m[1].trim()+" → DV: "+m[2].trim();}
+  return "Not explicitly stated";}
+function extractFocus(t,v){if(v&&v.startsWith("IV:")){const iv=v.match(/IV:\s*([^→]+)/);if(iv)return iv[1].trim();}
+  const m=t.match(/(?:examine[ds]?|investigate[ds]?|explore[ds]?|assess(?:ed)?|determine[ds]?)\s+(?:the\s+)?([^.,;]{6,80})/i);
+  return m?m[1].trim():"General";}
+function extractFindings(t){
+  const s=t.replace(/\s+/g," ").split(/(?<=[.!?])\s+(?=[A-Z])/);
+  const cues=["found","significant","showed","revealed","demonstrated","concluded","results indicate","improved","increased","decreased","no significant","p <","p<","p =","effect size","compared to"];
+  const hits=s.filter(x=>cues.some(c=>norm(x).includes(c)));
+  return hits.slice(0,2).join(" ").trim()||"Findings not detected in supplied text";}
+function scoreTheme(t){const low=norm(t);let best="Unclassified",bs=0;
+  for(const[th,d]of Object.entries(THEMES)){if(th==="Unclassified")continue;
+    const sc=d.keywords.reduce((a,k)=>a+(low.includes(k)?1:0),0); if(sc>bs){bs=sc;best=th;}}
+  return best;}
+function parseBlock(text){
+  const t=text.replace(/\s+/g," ").trim();
+  const year=extractYear(t), authors=extractAuthors(t,year), title=extractTitle(t,year,authors), variables=extractVariables(t);
+  return {id:cryptoId(), title, authors, year, doi:extractDOI(t), design:extractDesign(t), sample:extractSample(t),
+    variables, focus:extractFocus(t,variables), findings:extractFindings(t), theme:scoreTheme(t),
+    status:"Identification", decision:"", exclusionReason:"", raw:text.trim()};
+}
+function dedupeKey(a){return a.doi?("doi:"+norm(a.doi)):("ttl:"+norm(a.title).replace(/[^a-z0-9]/g,"").slice(0,40));}
+
+/* ============================ STATE ============================ */
+const state = { articles:[], stageFilter:"All", themeFilter:"All" };
+const $ = s => document.querySelector(s);
+
+function ingest(text,{singleRecord=false}={}){
+  const blocks = singleRecord ? [text.trim()] : text.split(/\n\s*\n+/).map(b=>b.trim()).filter(b=>b.length>25);
+  if(!blocks.length){ notify("warn","Paste at least one abstract, citation, or DOI."); return; }
+  const keys=new Set(state.articles.map(dedupeKey)); let added=0,dupes=0;
+  for(const b of blocks){ if(b.length<25)continue; const a=parseBlock(b); const k=dedupeKey(a);
+    if(keys.has(k)){dupes++;continue;} keys.add(k); state.articles.push(a); added++; }
+  notify("ok", `Added ${added} record${added===1?"":"s"} to Identification`+(dupes?` · ${dupes} duplicate${dupes===1?"":"s"} removed`:""));
+  render();
+}
+function notify(type,msg){const n=$("#notice");n.className=type;n.textContent=msg;}
+
+/* ============================ RENDER ============================ */
+function render(){
+  const A=state.articles;
+  $("#exportBtn").disabled = !A.length;
+  $("#clearBtn").classList.toggle("hide", !A.length);
+  if(!A.length){ $("#app").innerHTML = emptyHTML(); paintIcons(); return; }
+
+  const flow = computeFlow(A);
+  const dist = computeDist(A);
+  const visible = A.filter(a=>(state.stageFilter==="All"||a.status===state.stageFilter)&&(state.themeFilter==="All"||a.theme===state.themeFilter));
+
+  $("#app").innerHTML = `
+    <section class="grid-dash mt">
+      ${flowHTML(flow)}
+      ${themePanelHTML(dist, A.filter(a=>a.status==="Included").length)}
+    </section>
+    <section class="controls">
+      <label class="ctl">Stage ${selectHTML("f-stage",["All",...STAGES],state.stageFilter)}</label>
+      <label class="ctl">Theme ${selectHTML("f-theme",["All",...Object.keys(THEMES)],state.themeFilter)}</label>
+      <span class="count">${visible.length} / ${A.length} records shown</span>
+    </section>
+    <div class="tablewrap">
+      <table><thead><tr>
+        ${["Author–Year","Title","Design","Sample","Variables","Focus","Key findings","Theme","PRISMA","Exclusion reason",""].map(h=>`<th>${h}</th>`).join("")}
+      </tr></thead><tbody id="tbody">${visible.map(rowHTML).join("")}</tbody></table>
+    </div>
+    ${synthesisHTML(A.filter(a=>a.status==="Included"), flow)}
+  `;
+  paintIcons();
+  // filter listeners
+  $("#f-stage").onchange = e=>{state.stageFilter=e.target.value; render();};
+  $("#f-theme").onchange = e=>{state.themeFilter=e.target.value; render();};
+  bindTable();
+}
+function computeFlow(A){
+  const inSet=s=>A.filter(a=>s.includes(a.status)).length;
+  return {identification:A.length, screened:inSet(["Screening","Eligibility","Included","Excluded"]),
+    eligible:inSet(["Eligibility","Included","Excluded"]), included:inSet(["Included"]), excluded:inSet(["Excluded"])};
+}
+function computeDist(A){const d={};Object.keys(THEMES).forEach(t=>d[t]=0);
+  A.filter(a=>a.status==="Included").forEach(a=>d[a.theme]=(d[a.theme]||0)+1);return d;}
+function selectHTML(id,opts,val){return `<select id="${id}">${opts.map(o=>`<option ${o===val?"selected":""}>${o}</option>`).join("")}</select>`;}
+
+function flowHTML(f){
+  const box=(l,n,c,ic)=>`<div class="fbox" style="box-shadow:inset 0 0 0 1px ${c}33">
+    <div class="ic" style="color:${c}">${ICONS.flow}</div>
+    <div class="n" style="color:${c}">${n}</div><div class="l">${l}</div></div>`;
+  return `<div class="panel"><h3><span data-ic="flow"></span> PRISMA 2020 flow</h3>
+    <div class="flow">
+      ${box("Identification",f.identification,STAGE_COLOR.Identification)}<span class="arrow">→</span>
+      ${box("Screened",f.screened,STAGE_COLOR.Screening)}<span class="arrow">→</span>
+      ${box("Eligibility",f.eligible,STAGE_COLOR.Eligibility)}<span class="arrow">→</span>
+      ${box("Included",f.included,STAGE_COLOR.Included)}
+    </div>
+    <div class="excl">Excluded:&nbsp;<span class="chip" style="color:${STAGE_COLOR.Excluded}"><span class="dot"></span>${f.excluded}</span></div>
+  </div>`;
+}
+function themePanelHTML(dist,total){
+  const max=Math.max(1,...Object.values(dist));
+  const rows=Object.entries(dist).filter(([k,v])=>k!=="Unclassified"||v>0).map(([t,n])=>{
+    const c=THEMES[t].color;
+    return `<div class="tbar"><span class="ti" style="color:${c}">${themeIcon(t)}</span>
+      <span class="tn">${t}</span><div class="track"><div class="fill" style="width:${(n/max)*100}%;background:${c}"></div></div>
+      <span class="tc">${n}</span></div>`;}).join("");
+  return `<div class="panel"><h3><span data-ic="chart"></span> Themes <span style="color:var(--faint);font-weight:400;font-family:monospace">· included ${total}</span></h3>${rows}</div>`;
+}
+function rowHTML(a){
+  const tc=THEMES[a.theme].color, sc=STAGE_COLOR[a.status];
+  const themeOpts=Object.keys(THEMES).map(t=>`<option ${t===a.theme?"selected":""}>${t}</option>`).join("");
+  const stageOpts=STAGES.map(s=>`<option ${s===a.status?"selected":""}>${s}</option>`).join("");
+  const reasonCell = a.status==="Excluded"
+    ? `<select class="reason" data-id="${a.id}" data-field="reason">${EXCLUSION_REASONS.map(r=>`<option value="${r}" ${r===a.exclusionReason?"selected":""}>${r||"Select reason…"}</option>`).join("")}</select>`
+    : `<span style="color:var(--faint)">—</span>`;
+  return `<tr>
+    <td class="ay">${esc(a.authors)}<br><span class="yr">(${a.year||"n.d."})</span></td>
+    <td><div class="ttl">${esc(a.title)}</div>${a.doi?`<div class="doi">${esc(a.doi)}</div>`:""}</td>
+    <td class="small">${esc(a.design)}</td>
+    <td class="small mono">${esc(a.sample)}</td>
+    <td class="small" style="max-width:160px">${esc(a.variables)}</td>
+    <td class="small" style="max-width:120px">${esc(a.focus)}</td>
+    <td class="small" style="max-width:240px;line-height:1.45">${esc(a.findings)}</td>
+    <td><select class="pillsel" data-id="${a.id}" data-field="theme" style="color:${tc}">${themeOpts}</select></td>
+    <td><select class="pillsel" data-id="${a.id}" data-field="status" style="color:${sc}">${stageOpts}</select></td>
+    <td>${reasonCell}</td>
+    <td style="text-align:center"><button class="xbtn" data-id="${a.id}" data-field="remove" title="Remove">${ICONS.trash}</button></td>
+  </tr>`;
+}
+function synthesisHTML(inc, flow){
+  if(!inc.length) return `<section class="panel mt"><h3><span data-ic="synth"></span> Thematic synthesis</h3>
+    <p class="lead" style="margin:0">Move records to <b style="color:var(--ink)">Included</b> to auto-generate a synthesis draft grouped by theme.</p></section>`;
+  const byTheme={}; inc.forEach(a=>(byTheme[a.theme]=byTheme[a.theme]||[]).push(a));
+  const blocks=Object.entries(byTheme).map(([theme,arr])=>{
+    const c=THEMES[theme].color;
+    const designs=[...new Set(arr.map(a=>a.design))].filter(d=>d!=="Not specified");
+    const cites=arr.map(a=>`${a.authors.split(",")[0]}, ${a.year||"n.d."}`).join("; ");
+    const foci=[...new Set(arr.map(a=>a.focus))].slice(0,3).join("; ");
+    return `<div class="syn" style="border-color:${c}">
+      <span class="chip" style="color:${c}"><span class="ti" style="width:14px;height:14px">${themeIcon(theme)}</span>${theme} · ${arr.length}</span>
+      <p>${arr.length} included stud${arr.length===1?"y":"ies"}${designs.length?` (${designs.join(", ")})`:""} addressed <b>${theme.toLowerCase()}</b> in physical education and sports science contexts (${cites}). Reported foci included ${foci}. A representative finding: ${esc(arr[0].findings)}</p>
+    </div>`;}).join("");
+  return `<section class="panel mt"><h3><span data-ic="synth"></span> Thematic synthesis (draft)</h3>
+    <p class="lead">Auto-generated from ${inc.length} included studies across ${Object.keys(byTheme).length} theme(s). Edit before use in a manuscript.</p>
+    ${blocks}
+    <div class="synfoot">Records identified n=${flow.identification} · screened n=${flow.screened} · assessed for eligibility n=${flow.eligible} · included n=${flow.included} · excluded n=${flow.excluded}</div>
+  </section>`;
+}
+function emptyHTML(){return `<section class="panel mt"><div class="empty">
+  <div class="ec" data-ic="empty"></div><h3>No records yet</h3>
+  <p>Drop an article file or paste your first abstract above — or load the sample set to see the full PRISMA workflow, evidence table, and thematic synthesis in action.</p>
+</div></section>`;}
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function bindTable(){
+  const tb=$("#tbody"); if(!tb)return;
+  tb.addEventListener("change",e=>{
+    const el=e.target.closest("[data-field]"); if(!el)return;
+    const a=state.articles.find(x=>x.id===el.dataset.id); if(!a)return;
+    const f=el.dataset.field;
+    if(f==="theme"){a.theme=el.value; render();}
+    else if(f==="status"){a.status=el.value;
+      if(el.value==="Included")a.decision="Included";
+      else if(el.value==="Excluded")a.decision="Excluded";
+      else {a.decision="";a.exclusionReason="";}
+      render();}
+    else if(f==="reason"){a.exclusionReason=el.value;}
+  });
+  tb.addEventListener("click",e=>{
+    const el=e.target.closest('[data-field="remove"]'); if(!el)return;
+    state.articles=state.articles.filter(x=>x.id!==el.dataset.id); render();
+  });
+}
+
+/* ============================ ICON PAINTER ============================ */
+function paintIcons(){
+  document.querySelectorAll("[data-ic]").forEach(n=>{ if(n.dataset.painted)return;
+    n.innerHTML=ICONS[n.dataset.ic]||""; n.dataset.painted="1"; });
+  const logo=$("#logo"); if(logo && !logo.dataset.painted){logo.innerHTML=ICONS.flask; logo.dataset.painted="1";}
+}
+
+/* ============================ CSV EXPORT ============================ */
+function exportCSV(){
+  const cols=["Author-Year","Title","Study Design","Sample","Variables","Intervention / Focus","Key Findings","Theme","PRISMA Status","Reason for Exclusion","DOI"];
+  const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+  const rows=state.articles.map(a=>[`${a.authors} (${a.year||"n.d."})`,a.title,a.design,a.sample,a.variables,a.focus,a.findings,a.theme,a.decision||a.status,a.exclusionReason,a.doi].map(q).join(","));
+  const csv=[cols.map(q).join(","),...rows].join("\n");
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
+  const l=document.createElement("a"); l.href=url; l.download="sportslitlab-evidence-table.csv"; l.click(); URL.revokeObjectURL(url);
+}
+
+/* ============================ FILE DROP / READ ============================ */
+let pdfjsLoading=null;
+function loadPDFJS(){
+  if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if(pdfjsLoading) return pdfjsLoading;
+  pdfjsLoading=new Promise((res,rej)=>{
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    s.onload=()=>{ try{window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";}catch(e){} res(window.pdfjsLib); };
+    s.onerror=()=>rej(new Error("pdfjs failed"));
+    document.head.appendChild(s);
+  });
+  return pdfjsLoading;
+}
+async function readPDF(file){
+  const lib=await loadPDFJS();
+  const buf=await file.arrayBuffer();
+  const pdf=await lib.getDocument({data:buf}).promise;
+  let text="";
+  const max=Math.min(pdf.numPages,6); // first pages usually carry title/abstract
+  for(let i=1;i<=max;i++){const page=await pdf.getPage(i); const c=await page.getTextContent();
+    text+=c.items.map(it=>it.str).join(" ")+"\n";}
+  return text;
+}
+async function handleFiles(files){
+  let ok=0, failed=0;
+  for(const file of files){
+    const isPDF = file.type==="application/pdf" || /\.pdf$/i.test(file.name);
+    try{
+      let text;
+      if(isPDF){ text=await readPDF(file); }
+      else { text=await file.text(); }
+      text=(text||"").trim();
+      if(text.length<25){ failed++; continue; }
+      ingest(text,{singleRecord:true}); ok++;
+    }catch(err){ failed++; }
+  }
+  if(failed && isPDFfail()) notify("warn","Couldn't read a PDF (needs an internet connection for the PDF reader). Try a .txt file or paste the abstract.");
+  else if(failed) notify("warn",`${ok} file(s) added · ${failed} could not be read. Try .txt or paste the text.`);
+}
+function isPDFfail(){ return !window.pdfjsLib; }
+
+/* ============================ INTERACTIVE BACKGROUND (citation constellation) ============================ */
+(function background(){
+  const cv=$("#bg"), ctx=cv.getContext("2d");
+  const reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let W,H,pts=[]; const mouse={x:-999,y:-999};
+  const COL_DOT="rgba(232,115,28,", COL_LINE="rgba(165,29,32,", COL_NEAR="rgba(255,140,58,";
+  function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight;
+    const count=Math.min(90, Math.floor(W*H/16000));
+    pts=Array.from({length:count},()=>({x:Math.random()*W,y:Math.random()*H,
+      vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,r:Math.random()*1.6+.8}));
+  }
+  function step(){
+    ctx.clearRect(0,0,W,H);
+    for(const p of pts){
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0||p.x>W)p.vx*=-1; if(p.y<0||p.y>H)p.vy*=-1;
+      const dm=Math.hypot(p.x-mouse.x,p.y-mouse.y);
+      const near=dm<150;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7);
+      ctx.fillStyle=(near?COL_NEAR:COL_DOT)+(near?.9:.5)+")"; ctx.fill();
+    }
+    for(let i=0;i<pts.length;i++){
+      for(let j=i+1;j<pts.length;j++){
+        const a=pts[i],b=pts[j]; const d=Math.hypot(a.x-b.x,a.y-b.y);
+        if(d<118){ ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+          ctx.strokeStyle=COL_LINE+(0.16*(1-d/118))+")"; ctx.lineWidth=.7; ctx.stroke(); }
+      }
+      // connect to mouse
+      const a=pts[i], dm=Math.hypot(a.x-mouse.x,a.y-mouse.y);
+      if(dm<170){ ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(mouse.x,mouse.y);
+        ctx.strokeStyle=COL_NEAR+(0.3*(1-dm/170))+")"; ctx.lineWidth=.8; ctx.stroke(); }
+    }
+    if(!reduce) requestAnimationFrame(step);
+  }
+  addEventListener("resize",resize);
+  addEventListener("mousemove",e=>{mouse.x=e.clientX;mouse.y=e.clientY;
+    document.documentElement.style.setProperty("--mx",(e.clientX/innerWidth*100)+"%");
+    document.documentElement.style.setProperty("--my",(e.clientY/innerHeight*100)+"%");});
+  addEventListener("mouseleave",()=>{mouse.x=-999;mouse.y=-999;});
+  resize(); step();
+})();
+
+/* ============================ WIRING ============================ */
+function setup(){
+  paintIcons();
+  $("#addBtn").onclick=()=>{const t=$("#input").value; ingest(t); $("#input").value="";};
+  $("#sampleBtn").onclick=()=>ingest(SAMPLE);
+  $("#exportBtn").onclick=exportCSV;
+  document.addEventListener("click",e=>{ if(e.target.closest("#clearBtn")){state.articles=[];notify("ok","Cleared.");render();} });
+
+  // file input + dropzone
+  const dz=$("#dropzone"), fi=$("#fileInput");
+  dz.addEventListener("click",()=>fi.click());
+  fi.addEventListener("change",e=>{ handleFiles([...e.target.files]); fi.value=""; });
+  ["dragenter","dragover"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add("drag");}));
+  ["dragleave","drop"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove("drag");}));
+  dz.addEventListener("drop",e=>{ if(e.dataTransfer.files.length) handleFiles([...e.dataTransfer.files]); });
+  // also allow dropping anywhere on the page
+  ["dragover","drop"].forEach(ev=>window.addEventListener(ev,e=>e.preventDefault()));
+  window.addEventListener("drop",e=>{ if(e.target.closest("#dropzone"))return;
+    if(e.dataTransfer && e.dataTransfer.files.length) handleFiles([...e.dataTransfer.files]); });
+
+  render();
+}
+document.addEventListener("DOMContentLoaded",setup);
+</script>
+
+<footer class="wrap" style="padding-top:0">
+  <div style="border-top:1px solid var(--line);padding-top:18px">
+    <b>SportsLitLab</b> · PRISMA 2020 systematic-review workbench · developed by <b>JCB</b> · rule-based extraction runs fully offline
+  </div>
+</footer>
+</body>
 </html>
